@@ -1,0 +1,23 @@
+# Dados locais (não versionados)
+data/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.python-version
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Segredos / ambiente
+.env
+.env.*
+!.env.example
+
+# Sistema / editores
+.DS_Store
+.vscode/
+.idea/
