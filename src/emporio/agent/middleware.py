@@ -2,8 +2,14 @@
 
 `record_stop_reason`, because `create_agent` owns the loop and there is no
 `while` of ours left to branch on `stopReason`. Bedrock still reports it on
-every model call, and its failure values are the measurement that decides 
+every model call, and its failure values are the measurement that decides
 whether the model is good enough.
+
+`scope_tools_to_session`, because the two session modes differ in the *kind* of
+data they may touch: public catalog information in both, one customer's personal
+data only when the session carries that customer. The filter is applied to the
+request, so the order tools are not merely refused in an anonymous session --
+they are never offered.
 
 `tool_error_to_message`, because a broken tool must not end a conversation.
 `ToolNode` converts argument and validation errors into a message by itself, but
@@ -16,15 +22,25 @@ from __future__ import annotations
 
 import operator
 from collections import Counter
+from collections.abc import Callable
 from typing import Annotated, Any, Final
 
 from langchain.agents.middleware import (
+    AgentMiddleware,
     AgentState,
+    ModelCallResult,
+    ModelRequest,
+    ModelResponse,
     Runtime,
     ToolCallRequest,
     ToolErrorMiddleware,
     after_model,
+    wrap_model_call,
 )
+from langchain.tools import BaseTool
+
+from emporio.agent.context import SessionContext
+from emporio.agent.tools import ORDER_TOOL_NAMES
 
 # Bedrock puts the reason in `AIMessage.response_metadata["stopReason"]`.
 # These two are the healthy outcomes; everything else is a failure of some kind.
@@ -91,3 +107,62 @@ def _tool_error_content(error: Exception, request: ToolCallRequest) -> str:
 # conversation that ends mid-sentence. The resulting `ToolMessage` carries
 # `status="error"`, which is how the eval counts them.
 tool_error_to_message = ToolErrorMiddleware(on_error=_tool_error_content)
+
+
+def _tool_name(instrument: BaseTool | dict[str, Any]) -> str:
+    """The name of a bound tool, which may already be a provider-shaped dict."""
+    if isinstance(instrument, dict):
+        return str(instrument.get("name", ""))
+    return instrument.name
+
+
+def _tool_signature(instrument: BaseTool | dict[str, Any]) -> str:
+    """`name(arg, arg)` as the model sees it, for the `--debug` output.
+
+    From `BaseTool.args`, which is the schema actually sent, not the Python
+    signature: `runtime` is absent there, and so is `customer_id`. The pitfall
+    this prints against is a tool that exposes `customer_id` by accident -- worth
+    reading off the request rather than trusting the intention.
+    """
+    if isinstance(instrument, dict):
+        return _tool_name(instrument)
+    return f"{instrument.name}({', '.join(instrument.args)})"
+
+
+@wrap_model_call(name="ToolScopeMiddleware")
+def scope_tools_to_session(
+    request: ModelRequest[SessionContext],
+    handler: Callable[[ModelRequest[SessionContext]], ModelResponse],
+) -> ModelCallResult:
+    """Keep the order tools out of the request when the session is anonymous.
+
+    Every tool is registered on the agent; this decides which ones *that* call
+    is allowed to see. Not sending a tool is the access control: the model has no
+    way to call what it was not given, and therefore no way to leak what it
+    cannot look up. Stronger than a refusal written in the prompt -- a 4B-class
+    model is not an access lock -- and it costs tokens rather than spending them.
+    """
+    if getattr(request.runtime.context, "customer_id", None) is not None:
+        return handler(request)
+    public = [t for t in request.tools if _tool_name(t) not in ORDER_TOOL_NAMES]
+    return handler(request.override(tools=public))
+
+
+def log_offered_tools(sink: Callable[[str], None]) -> AgentMiddleware[Any, Any, Any]:
+    """Middleware that reports the tools of each model request to `sink`.
+
+    A factory and not a constant because the destination is the caller's: the CLI
+    prints to the terminal under `--debug`, a test collects into a list. It runs
+    inside `scope_tools_to_session`, so what it reports is what the model was
+    really offered, after the filtering.
+    """
+
+    @wrap_model_call(name="ToolLogMiddleware")
+    def log(
+        request: ModelRequest[SessionContext],
+        handler: Callable[[ModelRequest[SessionContext]], ModelResponse],
+    ) -> ModelCallResult:
+        sink(" · ".join(_tool_signature(t) for t in request.tools) or "nenhuma ferramenta")
+        return handler(request)
+
+    return log

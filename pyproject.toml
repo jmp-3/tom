@@ -15,6 +15,7 @@ dependencies = [
     "langchain>=1.4.8",
     "langgraph>=1.2.19",
     "langchain-aws>=1.9.1",
+    "pyyaml>=6.0.3",
 ]
 
 [project.scripts]
@@ -35,6 +36,7 @@ dev = [
     "pandas-stubs>=3.1.0.261029",
     "pytest>=9.2.0",
     "ruff>=0.17.3",
+    "types-pyyaml>=6.0.12.20261030",
 ]
 
 [tool.pytest.ini_options]

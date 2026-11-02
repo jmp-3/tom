@@ -1,0 +1,93 @@
+# Os casos do gate do modelo. Um por tipo de decisão que o atendente precisa
+# tomar, e nenhum a mais: o arquivo cresce no Estágio 6, aqui ele existe para
+# responder uma pergunta só — este modelo escolhe a ferramenta certa com a
+# persona em português e seis ferramentas tipadas na mesa?
+#
+# Chaves de cada caso:
+#   id            nome curto, usado na saída
+#   pergunta      o que o cliente escreve
+#   cliente_id    sessão identificada; ausente = sessão anônima
+#   ferramentas   as chamadas esperadas, em ordem; [] = não deve chamar nenhuma
+#   ferramentas_aceitas  chamadas extras que não contam como erro (detalhamento)
+#   argumentos    valores esperados na chamada (número exato; texto por conteúdo)
+#   resposta      trechos aceitos na resposta final, qualquer um deles serve
+#   motivo        por que este caso está aqui
+#
+# Critério para seguir: 6/6 na escolha da ferramenta, argumentos válidos e zero
+# malformed_tool_use, em duas execuções seguidas.
+
+- id: faixa_de_preco
+  pergunta: "Oi! Quais violões vocês têm até R$ 1.000?"
+  ferramentas: [search_products]
+  argumentos:
+    price_max: 1000
+  motivo: >-
+    A busca mais comum da loja, e a que depende de passar um número que o
+    cliente disse em palavras para o argumento certo.
+
+- id: detalhe_de_produto
+  pergunta: "Me conta mais sobre o Yamaha C40, ele está disponível?"
+  ferramentas: [get_product]
+  argumentos:
+    name: Yamaha C40
+  resposta: ["599", "disponivel"]
+  motivo: >-
+    Produto nomeado pelo cliente: é get_product, não busca. Testa também se o
+    modelo repete o preço formatado da ferramenta em vez de arredondar.
+
+- id: pedido_por_numero
+  pergunta: "Como está o meu pedido 1?"
+  cliente_id: 3
+  ferramentas: [get_order]
+  argumentos:
+    order_id: 1
+  resposta: ["entregue"]
+  motivo: >-
+    Sessão identificada, pedido pelo número. O customer_id não aparece no
+    schema: se o modelo tentar preenchê-lo, aparece como argumento inválido.
+
+- id: meus_pedidos
+  pergunta: "Quais são os meus pedidos?"
+  cliente_id: 3
+  ferramentas: [list_orders]
+  motivo: >-
+    A mesma pergunta sem número nenhum. É o caso em que um modelo pequeno tende
+    a chamar get_order com um order_id inventado.
+
+- id: pergunta_vaga_sobre_pedido
+  pergunta: "Eu estou devendo alguma coisa?"
+  cliente_id: 3
+  ferramentas: [list_orders]
+  ferramentas_aceitas: [get_order]
+  motivo: >-
+    Pergunta indireta: nem a palavra "pedido", nem número, nem nada que exista
+    nos dados ("dívida" não é um campo). O caso está aqui porque a resposta
+    errada observada não foi uma ferramenta errada, e sim o atendente explicando
+    ao cliente que não podia responder "sem consultar as ferramentas" — e depois
+    repetindo a mesma recusa a cada turno, porque ela estava no histórico.
+
+- id: sem_ferramenta
+  pergunta: "Bom dia! Vocês ficam em que cidade?"
+  ferramentas: []
+  resposta: ["campo grande"]
+  motivo: >-
+    O outro lado do gate: chamar ferramenta sem precisar é tão errado quanto
+    não chamar. A cidade está na persona.
+
+- id: acessorio_que_a_loja_nao_vende
+  pergunta: "Vocês vendem cordas de nylon para violão?"
+  ferramentas: []
+  resposta:
+    - acessorio
+    - nao vende
+    - so vendemos
+    - so instrumentos
+    - somente instrumentos
+    - apenas instrumentos
+    - nao trabalhamos
+    - nao comercializamos
+    - nao vendemos
+  motivo: >-
+    O catálogo tem só instrumentos (§1 e §7.1), então não há o que buscar: a
+    regra está na persona e a resposta é um redirecionamento educado. Um modelo
+    que "sabe" que loja de música vende cordas vai buscar ou, pior, oferecer.

@@ -12,8 +12,9 @@ from dotenv import load_dotenv
 # Repository root: src/emporio/config.py -> src/emporio -> src -> root
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-# The model that passed the tool use gate (scripts/smoke_tool_use.py).
-DEFAULT_MODEL_ID = "us.amazon.nova-micro-v1:0"
+# The model that passed the gate of `emporio eval`: 7/7 on tool choice and zero
+# malformed_tool_use.
+DEFAULT_MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 DEFAULT_EMBED_MODEL_ID = "amazon.titan-embed-text-v2:0"
 
 

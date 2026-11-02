@@ -193,7 +193,12 @@ def main(
         f"[bold]temperatura[/] {temperature}   [bold]rodadas[/] {runs}×2\n"
     )
 
-    agent = build_agent(model=bedrock.chat_model(model_id=model_id, temperature=temperature))
+    # `TOY_TOOLS` explicitly: `build_agent` binds the real store tools by
+    # default since stage 3, and this gate is the one that measured the loop with
+    # a single toy tool. Kept runnable so its numbers stay reproducible.
+    agent = build_agent(
+        model=bedrock.chat_model(model_id=model_id, temperature=temperature), tools=TOY_TOOLS
+    )
     with_tool: list[Turn] = []
     without_tool: list[Turn] = []
     blocks = (

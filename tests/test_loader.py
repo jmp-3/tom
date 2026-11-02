@@ -26,8 +26,7 @@ from tests.conftest import REFERENCE_DATE
 
 @pytest.mark.parametrize("table,expected", sorted(EXPECTED_ROWS.items()))
 def test_row_counts_are_exact(dataset: Dataset, table: str, expected: int) -> None:
-    """The most important test of this stage.
-
+    """
     None of the CSVs ends in a newline. Pandas handles this correctly, but a
     shell pipeline or a hand-written parser drops the final record silently.
     Asserting the counts turns that into a failing test instead of a product
