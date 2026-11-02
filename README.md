@@ -32,7 +32,7 @@ All variables live in the `.env` at the project root (not version controlled).
 | `AWS_REGION` | region where the models are enabled (default `us-east-1`) |
 | `AWS_BEARER_TOKEN_BEDROCK` | Bedrock API key, the simplest way to authenticate |
 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | alternative to the API key, if you use IAM credentials |
-| `BEDROCK_MODEL_ID` | conversation model (default `google.gemma-3-4b-it`) |
+| `BEDROCK_MODEL_ID` | conversation model (default `us.amazon.nova-micro-v1:0`) |
 | `BEDROCK_EMBED_MODEL_ID` | embeddings model (default `amazon.titan-embed-text-v2:0`) |
 | `DATA_DIR` | where the store data lives (default `./data`) |
 
@@ -42,7 +42,8 @@ All variables live in the `.env` at the project root (not version controlled).
 uv run emporio check          # validates credentials and model access
 uv run emporio models -s nova # lists the region's text models
 uv run emporio chat           # not implemented yet
-uv run pytest                 # the data layer, no billed calls
+uv run python scripts/smoke_tool_use.py   # the tool use gate (billed, ~10 calls)
+uv run pytest                 # data layer and agent mechanics, no billed calls
 uv run mypy                   # type check
 uv run ruff check             # lint
 uv run ruff format            # format in place; add --diff to preview first
@@ -61,15 +62,33 @@ src/emporio/
 ├── cli.py            # commands (typer + rich)
 ├── bedrock.py        # single entry point to the models
 ├── config.py         # configuration read from .env
+├── agent/
+│   ├── agent.py      # the loop: create_agent(model, tools, system_prompt)
+│   ├── middleware.py # stopReason recording and tool error handling
+│   └── toy_tools.py  # throwaway tools, deleted when the real ones arrive
 └── data/
     ├── loader.py     # CSV loading and the derived business fields
     ├── models.py     # pydantic input schemas, which generate the toolSpec
     └── queries.py    # pure query functions (the agent's tools)
+scripts/
+└── smoke_tool_use.py # the tool use gate
 tests/
 ├── conftest.py       # the shared dataset fixture and the fixed reference date
 ├── test_loader.py    # row counts, parsing, money and date arithmetic
-└── test_queries.py   # pricing, catalog filters, customer scope and PII
+├── test_queries.py   # pricing, catalog filters, customer scope and PII
+└── test_agent.py     # tool shape, tool errors, stopReason, offline loop
 ```
+
+## The agent
+
+LangChain 1.0 and LangGraph, which since 1.0 are one stack and not two choices. `create_agent` returns a
+compiled LangGraph graph that owns the loop -- model, tool, model again, until the model answers without
+calling anything -- and accepts the middleware the later stages need. `ChatBedrockConverse` puts the
+Bedrock Converse API underneath, so changing models stays a matter of changing `BEDROCK_MODEL_ID`.
+
+`emporio.bedrock` keeps both paths on purpose: `chat_model()` for the agent, and the raw `converse()`
+from stage 0 as the control to fall back on when a framework error is ambiguous about where it came from.
+It earned its keep in this stage.
 
 ## The data layer
 
@@ -79,6 +98,11 @@ states is computed here, deterministically and under test.
 ### Query functions
 
 The API surface. These will be the function-calling tools.
+
+Every money field comes back twice: `effective_price` for code to compare, and `effective_price_label`
+(`"R$ 1.299,00"`) as the string the agent quotes. The reason is in the measurement above -- the model
+reformats some floats wrongly -- and the naming follows `status_label` and `payment_label`, which already
+exist for the same idea: the agent should never have to construct what it says out of a raw value.
 
 ### Data scope and PII
 

@@ -3,6 +3,11 @@
 A single entry point to the models. Conversation goes through the Converse API
 (`converse`), which normalizes messages and `toolConfig` across model families;
 embeddings are not served by the Converse API, so they use `invoke_model`.
+
+`chat_model` is the same Converse API seen through LangChain, which is what the
+agent loop consumes. `converse` stays as the raw path: no framework in the way,
+already proven against this account, and therefore the control to fall back on
+when a LangChain error is ambiguous about where it came from.
 """
 
 from __future__ import annotations
@@ -12,6 +17,7 @@ from functools import lru_cache
 from typing import Any
 
 import boto3
+from langchain_aws import ChatBedrockConverse
 
 from emporio.config import get_settings
 
@@ -26,6 +32,44 @@ def get_client(service: str = "bedrock-runtime"):
     """
     settings = get_settings()
     return boto3.client(service, region_name=settings.region)
+
+
+def chat_model(
+    *,
+    model_id: str | None = None,
+    max_tokens: int = 1024,
+    temperature: float = 0.2,
+    max_retries: int = 2,
+    streaming: bool = False,
+) -> ChatBedrockConverse:
+    """Return the chat model the agent runs on, configured from the environment.
+
+    One function, so that changing models is changing `BEDROCK_MODEL_ID` in the
+    `.env` and nothing else -- which is what makes the fallback ladder cheap.
+
+    `get_settings()` runs first on purpose: it loads the `.env`, and
+    `ChatBedrockConverse` reads `AWS_BEARER_TOKEN_BEDROCK` from the environment
+    while it is being constructed. Built in the other order, the API key would
+    be invisible and authentication would fail. If a future version of
+    `langchain-aws` stops honoring the key, the way out is to hand it the client
+    this module already builds: `ChatBedrockConverse(client=get_client())`.
+
+    `max_retries` is explicit rather than inherited: a silent retry inside an
+    agent loop resends the whole history, so the cost of an accident grows with
+    the conversation. `streaming` is explicit for a different reason -- Bedrock
+    advertises streaming for Gemma, but `langchain-aws` does not have the model
+    in its allowlist, so leaving it unset only produces a warning on every call.
+    """
+    settings = get_settings()
+    return ChatBedrockConverse(
+        # `model` is the public name of the field; `model_id` is its alias.
+        model=model_id or settings.model_id,
+        region_name=settings.region,
+        max_tokens=max_tokens,
+        temperature=temperature,
+        max_retries=max_retries,
+        disable_streaming=not streaming,
+    )
 
 
 def converse(

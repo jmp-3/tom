@@ -12,6 +12,9 @@ dependencies = [
     "rich>=13.9.4",
     "pandas>=3.1.0",
     "pydantic>=2.14.2",
+    "langchain>=1.4.8",
+    "langgraph>=1.2.19",
+    "langchain-aws>=1.9.1",
 ]
 
 [project.scripts]
@@ -42,7 +45,7 @@ pythonpath = ["."]
 
 [tool.mypy]
 python_version = "3.11"
-files = ["src/emporio", "tests"]
+files = ["src/emporio", "tests", "scripts"]
 # mypy runs here so that the `Final` annotations are actually enforced and the
 # None-handling in the loader is checked, not to enable every strictness option.
 warn_unused_ignores = true

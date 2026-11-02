@@ -12,7 +12,8 @@ from dotenv import load_dotenv
 # Repository root: src/emporio/config.py -> src/emporio -> src -> root
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-DEFAULT_MODEL_ID = "google.gemma-3-4b-it"
+# The model that passed the tool use gate (scripts/smoke_tool_use.py).
+DEFAULT_MODEL_ID = "us.amazon.nova-micro-v1:0"
 DEFAULT_EMBED_MODEL_ID = "amazon.titan-embed-text-v2:0"
 
 

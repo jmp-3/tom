@@ -84,7 +84,9 @@ def check() -> None:
         answer = bedrock.text_of(
             bedrock.converse(
                 "Responda em uma frase curta: que loja é o Empório da Música?",
-                system="Você atende clientes de uma loja de instrumentos musicais em Campo Grande/MS.",
+                system=(
+                    "Você atende clientes de uma loja de instrumentos musicais em Campo Grande/MS."
+                ),
                 max_tokens=64,
             )
         )
@@ -115,9 +117,7 @@ def models(
     """List the text models available in the configured region."""
     settings = get_settings()
     try:
-        response = bedrock.get_client("bedrock").list_foundation_models(
-            byOutputModality="TEXT"
-        )
+        response = bedrock.get_client("bedrock").list_foundation_models(byOutputModality="TEXT")
     except (ClientError, BotoCoreError) as exc:
         console.print(f"[red]falhou[/] — {_describe_failure(exc)}")
         raise typer.Exit(code=1)
@@ -142,8 +142,7 @@ def models(
 def chat() -> None:
     """Talk to the agent (not implemented yet)."""
     console.print(
-        "[yellow]Ainda não implementado. "
-        "Use `emporio check` para validar o acesso ao Bedrock."
+        "[yellow]Ainda não implementado. Use `emporio check` para validar o acesso ao Bedrock."
     )
     raise typer.Exit(code=1)
 
