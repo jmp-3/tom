@@ -1,7 +1,7 @@
 [project]
 name = "em-agent"
 version = "0.1.0"
-description = "Agente de atendimento (CLI) para o Empório da Música — protótipo"
+description = "Customer service agent (CLI) for Empório da Música, prototype"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -10,6 +10,8 @@ dependencies = [
     "python-dotenv>=1.0.1",
     "typer>=0.15.1",
     "rich>=13.9.4",
+    "pandas>=3.1.0",
+    "pydantic>=2.14.2",
 ]
 
 [project.scripts]
@@ -23,3 +25,39 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/emporio"]
+
+[dependency-groups]
+dev = [
+    "mypy>=2.4.1",
+    "pandas-stubs>=3.1.0.261029",
+    "pytest>=9.2.0",
+    "ruff>=0.17.3",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# The suite imports `tests.conftest` for the pinned reference date, so the repo
+# root has to be importable.
+pythonpath = ["."]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src/emporio", "tests"]
+# mypy runs here so that the `Final` annotations are actually enforced and the
+# None-handling in the loader is checked, not to enable every strictness option.
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unreachable = true
+check_untyped_defs = true
+
+[[tool.mypy.overrides]]
+# boto3 and botocore ship no type information.
+module = ["boto3.*", "botocore.*"]
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+# E/W pycodestyle, F pyflakes, I import sorting, UP pyupgrade.
+select = ["E", "W", "F", "I", "UP"]

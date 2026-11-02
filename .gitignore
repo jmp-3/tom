@@ -1,8 +1,13 @@
-# Dados locais (não versionados)
-data/
+# Local data (not version controlled). Anchored to the repository root: an
+# unanchored `data/` also matches src/emporio/data/, which would silently keep
+# the whole data package out of every commit.
+/data/
 
 # Python
 __pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 *.py[cod]
 .venv/
 venv/
@@ -12,12 +17,12 @@ env/
 # Jupyter
 .ipynb_checkpoints/
 
-# Segredos / ambiente
+# Secrets / environment
 .env
 .env.*
 !.env.example
 
-# Sistema / editores
+# System / editors
 .DS_Store
 .vscode/
 .idea/
