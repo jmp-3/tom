@@ -10,6 +10,7 @@ import pandas as pd
 
 from emporio.data.loader import (
     Dataset,
+    brl,
     days_since_delivery,
     load_dataset,
     normalize_text,
@@ -136,15 +137,26 @@ def _availability(row: dict[str, Any]) -> str:
 
 
 def _lean_product(row: dict[str, Any]) -> dict[str, Any]:
-    """The search projection."""
+    """The search projection.
+
+    Every money field carries a `_label` beside it: the number for code to
+    compare and the string for the model to quote. Same reasoning as
+    `status_label` and `payment_label` -- the agent should never have to
+    construct what it says from a raw value -- but here it is not a convenience.
+    A model that reformats a float gets the price wrong (see `brl`), and a price
+    quoted wrong to a customer is the worst failure this prototype can have.
+    """
     return {
         "product_id": int(row["product_id"]),
         "name": row["name"],
         "category": _opt_str(row["category"]),
         "list_price": float(row["price_brl"]),
+        "list_price_label": brl(row["price_brl"]),
         "effective_price": float(row["effective_price"]),
+        "effective_price_label": brl(row["effective_price"]),
         "discount_percent": _opt_int(row["discount_percent"]),
         "pix_price": float(row["pix_price"]),
+        "pix_price_label": brl(row["pix_price"]),
         "in_stock": bool(row["in_stock"]),
         "availability": _availability(row),
     }
@@ -165,6 +177,7 @@ def _full_product(row: dict[str, Any]) -> dict[str, Any]:
         # price, so this is the minimum of two alternatives, never a product of
         # both.
         "best_price": float(row["best_price"]),
+        "best_price_label": brl(row["best_price"]),
     }
 
 
@@ -199,6 +212,7 @@ def _lean_order(dataset: Dataset, row: dict[str, Any]) -> dict[str, Any]:
         "status_label": STATUS_LABELS.get(row["status"], row["status"]),
         "order_date": _iso_date(row["order_date"]),
         "total_brl": float(row["total_brl"]),
+        "total_brl_label": brl(row["total_brl"]),
         "tracking_code": _opt_str(row["tracking_code"]),
         "estimated_delivery": _iso_date(row["estimated_delivery"]),
         "items": _order_items(dataset, int(row["order_id"])),

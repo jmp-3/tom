@@ -14,6 +14,7 @@ from emporio.data.loader import (
     Dataset,
     DatasetError,
     apply_discount,
+    brl,
     csv_path,
     days_since_delivery,
     money,
@@ -78,6 +79,34 @@ def test_money_rounds_half_up_not_to_even() -> None:
     # on 569.90; a price list lands on 569.91.
     assert money(Decimal("569.905")) == 569.91
     assert apply_discount(599.9, PIX_DISCOUNT_PERCENT) == 569.91
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        (1299, "R$ 1.299,00"),
+        (1299.0, "R$ 1.299,00"),
+        (599.9, "R$ 599,90"),
+        (7999, "R$ 7.999,00"),
+        (0, "R$ 0,00"),
+        (1234567.89, "R$ 1.234.567,89"),
+        (Decimal("439.195"), "R$ 439,20"),
+    ],
+)
+def test_brl_writes_brazilian_currency(value: object, expected: str) -> None:
+    """The string the model quotes instead of formatting a float itself.
+
+    `1299.0` and `7999.0` are in the list because those are the two values that
+    came back from the model as "R$ 129,90" and "R$ 79,99".
+    """
+    assert brl(value) == expected  # type: ignore[arg-type]
+
+
+def test_brl_rounds_the_way_the_price_list_does() -> None:
+    # Same half-up rounding as `money`, so the label can never disagree with the
+    # number beside it.
+    assert brl(2.345) == "R$ 2,35"
+    assert brl(money(2.345)) == brl(2.345)
 
 
 def test_normalize_text_ignores_accents_and_case() -> None:

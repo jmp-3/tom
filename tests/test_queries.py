@@ -6,7 +6,7 @@ from datetime import date
 
 import pytest
 
-from emporio.data.loader import Dataset
+from emporio.data.loader import Dataset, brl
 from emporio.data.models import (
     GetOrderInput,
     GetProductInput,
@@ -148,6 +148,30 @@ def test_search_surfaces_unavailable_products_when_asked(product_id: int) -> Non
 
 
 # --- search ------------------------------------------------------------------
+
+
+def test_every_money_field_carries_the_string_the_model_should_quote() -> None:
+    """The model gets the price wrong when it has to format one (see `brl`).
+
+    So no money field travels to a tool without its label, and the label always
+    agrees with the number beside it. A new money field added without one is a
+    price the agent can misquote, which is why this walks the projection instead
+    of naming fields.
+    """
+    product = get_product(PROMOTED)
+    assert product is not None
+    order = get_order(ORDER_OF_CUSTOMER_3, 3, today=REFERENCE_DATE)
+
+    for row in (product, order):
+        money_fields = [
+            key
+            for key, value in row.items()
+            if isinstance(value, float) and not key.endswith("_percent")
+        ]
+        assert money_fields, "the projection should carry prices"
+        for key in money_fields:
+            assert f"{key}_label" in row, f"{key} has no label"
+            assert row[f"{key}_label"] == brl(row[key])
 
 
 def test_price_range_filters_on_the_price_the_customer_would_pay() -> None:

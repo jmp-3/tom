@@ -124,6 +124,21 @@ def money(value: Decimal | float | int) -> float:
     return float(Decimal(str(value)).quantize(_CENT, rounding=ROUND_HALF_UP))
 
 
+def brl(value: Decimal | float | int) -> str:
+    """Format as Brazilian currency: `1299` becomes `"R$ 1.299,00"`.
+
+    This exists because the model cannot be trusted to do it. Handed
+    `"effective_price": 1299.0`, Nova Micro answers *"R$ 129,90"*, repeatably,
+    while formatting most other values correctly: the digits of some prices
+    spell a common retail price and it writes that instead. The fix is to take
+    the step away from it and hand it a string to copy.
+
+    `str.format` has no locale-independent way to write 1.299,00, so the
+    separators are swapped through a placeholder that cannot occur in a number.
+    """
+    return f"R$ {money(value):,.2f}".replace(",", "@").replace(".", ",").replace("@", ".")
+
+
 def apply_discount(price: Decimal | float, discount_percent: Decimal | float) -> float:
     """Price with `discount_percent` taken off, rounded to cents."""
     factor = (Decimal(100) - Decimal(str(discount_percent))) / Decimal(100)
