@@ -14,6 +14,22 @@ the only ambiguity the manual itself has -- it lists two phone numbers, the
 store's own in section 1.2 and the WhatsApp channel in section 7 -- as a rule
 about which to pick, and not as a number written down here.
 
+Rules 17 and 18 exist because retrieval gave the model something to be helpful
+with and no way to finish the job. Section 5.2 says the shipping cost is computed
+from the destination CEP, weight and dimensions; nothing here computes it and no
+CEP arrives with the session, so an offer to "check the freight for you" is a
+promise the agent cannot keep.
+
+They are two rules and not one for the reason rule 9 is separate from rule 8.
+The first version said the prohibition and the replacement answer in one
+sentence -- "você não calcula frete, diga as regras da seção 5" -- and the model
+obeyed it by answering from the rule alone: no lookup, and a free-shipping
+threshold of "R$ 299,00" invented on the spot against the 500 of section 5.1.
+Hence the split, and hence the wording: 17 forbids only the *offer*, so that
+shipping does not read as a topic to answer from memory, and 18 opens with the
+lookup and asks for the retrieved values and nothing else. The two cases named
+`frete_*` in `evals/casos.yaml` are what holds this.
+
 """
 
 from __future__ import annotations
@@ -64,7 +80,11 @@ políticas e cite a seção em que a regra está (ex.: "conforme a seção 4.1")
 o trecho não responder à pergunta, diga o que falta em vez de completar.
 16. Contato: para atendimento remoto, use o WhatsApp da seção 7; o telefone da \
 seção 1.2 é o da loja física. Nunca repita um contato que a ferramenta não \
-devolveu."""
+devolveu.
+17. Nunca ofereça calcular, cotar nem simular frete: você não faz isso.
+18. Pergunta sobre frete: consulte o manual e repita só os valores e prazos que \
+o trecho trouxer. O valor exato do envio aparece no site, na finalização da \
+compra, a partir do CEP."""
 
 # The session-dependent half. It is a separate constant per mode because the two
 # modes differ in what the model may say, not only in what it can look up: in an

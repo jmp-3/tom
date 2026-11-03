@@ -1,7 +1,7 @@
 # Os casos do gate do modelo. Um por tipo de decisão que o atendente precisa
 # tomar, e nenhum a mais: o arquivo cresce no Estágio 6, aqui ele existe para
 # responder uma pergunta só — este modelo escolhe a ferramenta certa com a
-# persona em português e seis ferramentas tipadas na mesa?
+# persona em português e sete ferramentas tipadas na mesa?
 #
 # Chaves de cada caso:
 #   id            nome curto, usado na saída
@@ -13,7 +13,7 @@
 #   resposta      trechos aceitos na resposta final, qualquer um deles serve
 #   motivo        por que este caso está aqui
 #
-# Critério para seguir: 6/6 na escolha da ferramenta, argumentos válidos e zero
+# Critério para seguir: 9/9 na escolha da ferramenta, argumentos válidos e zero
 # malformed_tool_use, em duas execuções seguidas.
 
 - id: faixa_de_preco
@@ -91,3 +91,24 @@
     O catálogo tem só instrumentos (§1 e §7.1), então não há o que buscar: a
     regra está na persona e a resposta é um redirecionamento educado. Um modelo
     que "sabe" que loja de música vende cordas vai buscar ou, pior, oferecer.
+
+- id: frete_outra_cidade
+  pergunta: "Quanto custa o frete de um violão para São Paulo?"
+  ferramentas: [search_policies]
+  resposta: ["cep", "finalizacao", "site"]
+  motivo: >-
+    Fora da região metropolitana a §5.2 diz que o valor sai do CEP, do peso e
+    das dimensões — e nada aqui calcula isso. O caso existe porque a resposta
+    errada observada não foi uma ferramenta errada: foi responder sem consultar
+    nada, com um frete grátis "acima de R$ 299,00" que não existe em lugar
+    nenhum (a §5.1 diz 500). É o que as regras 17 e 18 da persona seguram.
+
+- id: frete_campo_grande
+  pergunta: "E aqui em Campo Grande, quanto fica o frete?"
+  ferramentas: [search_policies]
+  resposta: ["500", "35"]
+  motivo: >-
+    A outra metade: na região metropolitana a §5.1 *tem* os números (frete
+    grátis acima de R$ 500,00, taxa fixa de R$ 35,00), então a resposta certa
+    os cita em vez de mandar o cliente ao site. Um modelo que trate frete como
+    assunto de memória erra os dois casos do mesmo jeito.

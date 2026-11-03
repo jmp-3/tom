@@ -33,8 +33,8 @@ def _case(**overrides: object) -> Case:
 
 class TestCaseFile:
     def test_the_cases_of_this_stage_are_there(self) -> None:
-        assert len(CASES) == 7
-        assert len({case.id for case in CASES}) == 7
+        assert len(CASES) == 9
+        assert len({case.id for case in CASES}) == 9
 
     def test_every_case_declares_a_mode_and_a_reason(self) -> None:
         for case in CASES:
@@ -48,9 +48,12 @@ class TestCaseFile:
         assert any(case.customer_id is not None for case in CASES)
         assert any(case.customer_id is None for case in CASES)
         assert any(case.tools == () for case in CASES)
-        # Both order tools are exercised: one with a number, one without.
+        # Both order tools are exercised: one with a number, one without. The
+        # policy tool is in the gate because the failure it guards is a tool the
+        # model skips, not one it calls wrongly.
         called = {name for case in CASES for name in case.tools}
-        assert {"get_order", "list_orders"} <= called <= {t.name for t in STORE_TOOLS}
+        assert {"get_order", "list_orders", "search_policies"} <= called
+        assert called <= {t.name for t in STORE_TOOLS}
 
     def test_a_tool_that_does_not_exist_is_rejected(self, tmp_path: Path) -> None:
         """A typo in a tool name would fail every run for the wrong reason."""
