@@ -27,8 +27,19 @@ obeyed it by answering from the rule alone: no lookup, and a free-shipping
 threshold of "R$ 299,00" invented on the spot against the 500 of section 5.1.
 Hence the split, and hence the wording: 17 forbids only the *offer*, so that
 shipping does not read as a topic to answer from memory, and 18 opens with the
-lookup and asks for the retrieved values and nothing else. The two cases named
-`frete_*` in `evals/casos.yaml` are what holds this.
+lookup and asks for the retrieved values and nothing else.
+
+They are two rules, in this order, and every other arrangement was measured and
+is worse. Said in one sentence with the answer inside it -- "você não calcula
+frete, diga as regras da seção 5" -- the model answered from the rule and
+invented a free-shipping threshold of R$ 299,00 against the 500 of section 5.1.
+Told to "give both cases with the manual's values", it wrote "metropolitan
+region: one price, other cities: another price" and looked nothing up. Told not
+to assume the destination, it asked for the CEP, which rule 12 forbids. And as a
+bare prohibition with no rule 18 behind it, it stopped consulting the manual
+altogether. What works is a prohibition that names no replacement answer,
+followed by a rule whose whole content is "look it up and repeat what you
+found". The three cases named `frete_*` in `evals/casos.yaml` are what holds it.
 
 """
 
@@ -102,7 +113,7 @@ Regras desta sessão:
 3. Ofereça o que você pode responder aqui: catálogo, preços e políticas da loja."""
 
 AUTHENTICATED_BLOCK: Final = """\
-Sessão identificada: você está falando com {first_name}{city}.
+Sessão identificada: você está falando com {first_name}.
 
 Regras desta sessão:
 1. Cumprimente {first_name} pelo primeiro nome no primeiro turno.
@@ -116,11 +127,7 @@ def session_block(context: SessionContext | None = None) -> str:
     if context is None or not context.authenticated:
         return ANONYMOUS_BLOCK
     first_name = context.first_name or "o cliente"
-    # The city matters for the shipping rules (section 5.1: same-day delivery in
-    # metropolitan Campo Grande), so the persona states it instead of making the
-    # model ask for an address -- which rule 9 forbids anyway.
-    city = f", de {context.city}" if context.city else ""
-    return AUTHENTICATED_BLOCK.format(first_name=first_name, city=city)
+    return AUTHENTICATED_BLOCK.format(first_name=first_name)
 
 
 def persona(context: SessionContext | None = None) -> str:

@@ -418,15 +418,15 @@ def test_order_payloads_carry_no_pii(dataset: Dataset) -> None:
     assert "phone" not in blob and "email" not in blob
 
 
-def test_load_customer_projects_only_name_and_city() -> None:
-    """Session bootstrap: a greeting by name and a shipping rule by city. It is
-    never registered as a tool, so the model cannot look a customer up at all."""
+def test_load_customer_projects_only_the_name() -> None:
+    """Session bootstrap: a greeting by name, and nothing else. It is never
+    registered as a tool, so the model cannot look a customer up at all.
+
+    Not the registered city either: the shipping rules depend on where the order
+    is going, which the checkout asks for, and not on where the customer lives.
+    """
     customer = load_customer(3)
-    assert customer == {
-        "customer_id": 3,
-        "name": "Pedro Henrique Oliveira",
-        "city": "Campo Grande",
-    }
+    assert customer == {"customer_id": 3, "name": "Pedro Henrique Oliveira"}
     assert load_customer(9999) is None
 
 

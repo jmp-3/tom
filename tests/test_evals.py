@@ -33,8 +33,8 @@ def _case(**overrides: object) -> Case:
 
 class TestCaseFile:
     def test_the_cases_of_this_stage_are_there(self) -> None:
-        assert len(CASES) == 9
-        assert len({case.id for case in CASES}) == 9
+        assert len(CASES) == 11
+        assert len({case.id for case in CASES}) == 11
 
     def test_every_case_declares_a_mode_and_a_reason(self) -> None:
         for case in CASES:

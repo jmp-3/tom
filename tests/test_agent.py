@@ -36,6 +36,7 @@ from emporio.agent import (
     for_customer,
     log_offered_tools,
     persona,
+    session_block,
 )
 from emporio.agent.middleware import TOOL_ERROR_TEMPLATE, failures, tally
 from emporio.agent.prompt import ANONYMOUS_BLOCK
@@ -294,6 +295,9 @@ class TestPersona:
         text = persona(session)
         assert "Pedro" in text
         assert "Oliveira" not in text  # first name only, nothing else from the row
+        # Not the registered city either: where an order goes is decided at
+        # checkout, and a session that names a city makes the model assume one.
+        assert "Campo Grande" not in session_block(session)
         assert "área logada" not in text
 
     def test_an_unknown_customer_has_no_session(self) -> None:
@@ -303,7 +307,7 @@ class TestPersona:
         """The system block the model actually gets, not the one we meant to send."""
         model = ScriptedModel(script=[_say("Olá, Pedro!")])
         agent = build_agent(model=model)
-        session = SessionContext(customer_id=CUSTOMER, first_name="Pedro", city="Campo Grande")
+        session = SessionContext(customer_id=CUSTOMER, first_name="Pedro")
 
         agent.invoke({"messages": [{"role": "user", "content": "oi"}]}, context=session)
 

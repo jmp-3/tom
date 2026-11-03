@@ -300,7 +300,7 @@ def _render_debug(messages: list[BaseMessage], offered: list[str], reasons: list
 
 def _transcript_header(session: SessionContext, model_id: str, region: str) -> list[str]:
     mode = (
-        f"cliente {session.customer_id} ({session.first_name}, {session.city})"
+        f"cliente {session.customer_id} ({session.first_name})"
         if session.authenticated
         else "anônima (sem `--cliente-id`)"
     )
@@ -345,7 +345,7 @@ def chat(
     header.add_row("modelo", settings.model_id)
     header.add_row(
         "sessão",
-        f"cliente {session.customer_id} — {session.first_name}, {session.city}"
+        f"cliente {session.customer_id} — {session.first_name}"
         if session.authenticated
         else "anônima (só informação pública; pedidos ficam na área logada)",
     )

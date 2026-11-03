@@ -29,7 +29,6 @@ class SessionContext:
 
     customer_id: int | None = None
     first_name: str | None = None
-    city: str | None = None
 
     @property
     def authenticated(self) -> bool:
@@ -45,14 +44,19 @@ def for_customer(customer_id: int, *, dataset: Dataset | None = None) -> Session
     """Build the session of an identified customer. None when the id is unknown.
 
     Called once per session, by the CLI. `load_customer` is the one query that is
-    not a tool: the name and the city are session data, not something the model
-    can look up, and no phone or e-mail is projected (policy manual, section 9).
+    not a tool: the first name is session data, not something the model can look
+    up, and nothing else from the row is projected (policy manual, section 9).
+
+    The registered city used to travel with the session, so that the agent could
+    apply the shipping rules of section 5.1 without asking for an address. It no
+    longer does: where an order is going is not where the customer is
+    registered, and an agent that assumes it states the wrong freight with
+    total confidence. The destination belongs to the checkout, which is where
+    the CEP is actually entered.
     """
     row: dict[str, Any] | None = queries.load_customer(customer_id, dataset=dataset)
     if row is None:
         return None
     # The persona greets by first name, which is all of the name it ever needs.
     first_name = str(row["name"]).split()[0]
-    return SessionContext(
-        customer_id=int(row["customer_id"]), first_name=first_name, city=row["city"]
-    )
+    return SessionContext(customer_id=int(row["customer_id"]), first_name=first_name)

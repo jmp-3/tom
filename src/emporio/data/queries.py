@@ -437,11 +437,13 @@ def similar_products(
 
 
 def load_customer(customer_id: int, *, dataset: Dataset | None = None) -> dict[str, Any] | None:
-    """Name and city for the session greeting and the shipping rules.
+    """The name, for the session greeting. Nothing else.
 
     Session bootstrap, called once by the CLI, and never registered as a tool:
-    the model has no way to look a customer up. Phone and e-mail are in the CSV
-    and are deliberately not projected here.
+    the model has no way to look a customer up. Phone, e-mail and the registered
+    city are in the CSV and are deliberately not projected here -- the city
+    because a destination that is assumed is a wrong freight stated with
+    confidence (see `agent.context.for_customer`).
     """
     resolved = _require_customer_id(customer_id)
     data = _dataset(dataset)
@@ -449,4 +451,4 @@ def load_customer(customer_id: int, *, dataset: Dataset | None = None) -> dict[s
     if matched.empty:
         return None
     row = _records(matched)[0]
-    return {"customer_id": resolved, "name": row["name"], "city": row["city"]}
+    return {"customer_id": resolved, "name": row["name"]}

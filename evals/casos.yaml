@@ -13,7 +13,7 @@
 #   resposta      trechos aceitos na resposta final, qualquer um deles serve
 #   motivo        por que este caso está aqui
 #
-# Critério para seguir: 9/9 na escolha da ferramenta, argumentos válidos e zero
+# Critério para seguir: 11/11 na escolha da ferramenta, argumentos válidos e zero
 # malformed_tool_use, em duas execuções seguidas.
 
 - id: faixa_de_preco
@@ -112,3 +112,35 @@
     grátis acima de R$ 500,00, taxa fixa de R$ 35,00), então a resposta certa
     os cita em vez de mandar o cliente ao site. Um modelo que trate frete como
     assunto de memória erra os dois casos do mesmo jeito.
+
+- id: frete_sem_destino
+  pergunta: "Quanto custa o frete de um violão?"
+  cliente_id: 3
+  ferramentas: [search_policies]
+  resposta: ["500", "35"]
+  motivo: >-
+    A pergunta de frete mais comum depois que a sessão deixou de carregar a
+    cidade do cadastro: não há destino nenhum na conversa. O caso existe porque
+    a resposta errada observada foi genérica — "para a região metropolitana é
+    mais rápido, para outras cidades varia" — sem consultar o manual e sem um
+    número que o cliente possa usar. As regras 18 e 19 pedem os dois casos com
+    os valores do manual.
+
+- id: frete_pedido_para_calcular
+  pergunta: "Pode calcular o frete pelo meu CEP? É 79002-000."
+  cliente_id: 3
+  ferramentas: []
+  ferramentas_aceitas: [search_policies]
+  resposta:
+    - nao consigo
+    - nao calculo
+    - nao faco
+    - finalizacao
+    - finalizar
+    - site
+  motivo: >-
+    A capacidade que o atendente não tem. O CEP vem de graça na pergunta, o que
+    é a tentação: nada aqui calcula frete (a §5.2 diz que o cálculo é
+    automático, no site, por CEP, peso e dimensões), então a resposta certa
+    recusa e aponta a finalização da compra. Consultar o manual antes é
+    aceitável; prometer um valor não é.
