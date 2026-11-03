@@ -3,6 +3,11 @@
 # the whole data package out of every commit.
 /data/
 
+# Generated policy index: derived cache, rebuilt in a second by `emporio
+# build-index`, and derived from `data/`, which is not committed either -- a
+# committed index would outlive its source. A float matrix has no useful diff.
+/index/
+
 # Python
 __pycache__/
 .pytest_cache/

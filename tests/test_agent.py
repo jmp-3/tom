@@ -27,9 +27,9 @@ from langgraph.prebuilt import ToolNode
 
 from emporio.agent import (
     ANONYMOUS,
-    CATALOG_TOOLS,
     ORDER_TOOLS,
     PERSONA,
+    PUBLIC_TOOLS,
     STORE_TOOLS,
     SessionContext,
     build_agent,
@@ -184,7 +184,9 @@ class TestSessionScope:
             {"messages": [{"role": "user", "content": "e o pedido 1?"}]}, context=ANONYMOUS
         )
 
-        assert model.bound_tools == [[t.name for t in CATALOG_TOOLS]]
+        # The public half: the catalog and the policy manual, both published
+        # information. What is missing is the order tools and only those.
+        assert model.bound_tools == [[t.name for t in PUBLIC_TOOLS]]
 
     def test_an_identified_session_is_offered_every_tool(self) -> None:
         model = ScriptedModel(script=[_say("Deixa eu ver seus pedidos.")])

@@ -7,6 +7,13 @@ for in this project: the model never computes a price, never counts stock, never
 estimates a deadline. Those come from a tool, and the persona's job is to stop
 the model from answering from memory.
 
+Rule 15 asks for the section number of any store rule it applies, which is the
+one thing retrieval adds to the persona: a policy answer that names 4.1 can be
+checked against the manual, and one that names nothing cannot. Rule 16 settles
+the only ambiguity the manual itself has -- it lists two phone numbers, the
+store's own in section 1.2 and the WhatsApp channel in section 7 -- as a rule
+about which to pick, and not as a number written down here.
+
 """
 
 from __future__ import annotations
@@ -50,7 +57,14 @@ identificado pelo canal.
 13. Assunto alheio à loja: recuse com simpatia e volte para instrumentos, \
 pedidos ou políticas da loja.
 14. Não invente produto, pedido, política, frete nem prazo. O que a ferramenta \
-não devolveu, você não sabe."""
+não devolveu, você não sabe.
+15. Regra da loja (troca, devolução, garantia, frete, pagamento, \
+parcelamento, horário, promoção, dados pessoais): consulte o manual de \
+políticas e cite a seção em que a regra está (ex.: "conforme a seção 4.1"). Se \
+o trecho não responder à pergunta, diga o que falta em vez de completar.
+16. Contato: para atendimento remoto, use o WhatsApp da seção 7; o telefone da \
+seção 1.2 é o da loja física. Nunca repita um contato que a ferramenta não \
+devolveu."""
 
 # The session-dependent half. It is a separate constant per mode because the two
 # modes differ in what the model may say, not only in what it can look up: in an

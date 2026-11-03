@@ -6,10 +6,13 @@ every model call, and its failure values are the measurement that decides
 whether the model is good enough.
 
 `scope_tools_to_session`, because the two session modes differ in the *kind* of
-data they may touch: public catalog information in both, one customer's personal
-data only when the session carries that customer. The filter is applied to the
-request, so the order tools are not merely refused in an anonymous session --
-they are never offered.
+data they may touch: public information in both -- the catalog and the policy
+manual -- and one customer's personal data only when the session carries that
+customer. The filter is applied to the request, so the order tools are not
+merely refused in an anonymous session -- they are never offered. It removes a
+named set rather than keeping one, which is what makes every tool public until
+it is listed: the mistake worth preventing is a personal-data tool reaching an
+anonymous session, not a public one failing to.
 
 `tool_error_to_message`, because a broken tool must not end a conversation.
 `ToolNode` converts argument and validation errors into a message by itself, but

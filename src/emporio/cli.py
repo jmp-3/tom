@@ -21,6 +21,15 @@ from emporio import __version__, bedrock
 from emporio.agent import ANONYMOUS, SessionContext, build_agent, for_customer, log_offered_tools
 from emporio.config import get_settings
 from emporio.evals import DEFAULT_CASES, Summary, load_cases, run_cases, summarize
+from emporio.rag import (
+    CHUNKS_FILE,
+    DEFAULT_INDEX_DIR,
+    VECTORS_FILE,
+    PolicyError,
+    build_index,
+    check_index,
+    policies_path,
+)
 
 app = typer.Typer(
     add_completion=False,
@@ -58,7 +67,13 @@ def _describe_failure(exc: Exception) -> str:
         code = exc.response.get("Error", {}).get("Code", "")
         message = exc.response.get("Error", {}).get("Message", str(exc))
         key = code
-        if code == "AccessDeniedException" and "Authentication failed" in message:
+        # Bedrock words the same refusal two ways: "Authentication failed" for a
+        # key it does not recognize and "Bearer Token has expired" for one that
+        # ran out. Both are the credential and neither is the model access, so
+        # they must not point the operator at the Model access page.
+        if code == "AccessDeniedException" and (
+            "Authentication failed" in message or "has expired" in message
+        ):
             key = "AccessDeniedException/auth"
         hint = _HINTS.get(key)
         return f"{code}: {message}" + (f"\n  → {hint}" if hint else "")
@@ -148,6 +163,79 @@ def models(
             "sim" if model.get("responseStreamingSupported") else "não",
         )
     console.print(table)
+
+
+# --- build-index --------------------------------------------------------------
+
+
+@app.command("build-index")
+def build_index_command(
+    index_dir: Path = typer.Option(
+        DEFAULT_INDEX_DIR, "--index-dir", help="Onde gravar os dois arquivos do índice."
+    ),
+) -> None:
+    """Build the policy index: chunk the manual, embed the chunks, write `index/`."""
+    settings = get_settings()
+    try:
+        pdf = policies_path()
+    except PolicyError as exc:
+        console.print(f"[red]falhou[/] — {exc}")
+        raise typer.Exit(code=1) from exc
+
+    console.print(f"[bold]manual[/] {pdf.name}   [bold]embeddings[/] {settings.embed_model_id}\n")
+    try:
+        with console.status("extraindo e embeddando…"):
+            index = build_index(index_dir=index_dir)
+    except (ClientError, BotoCoreError, NoCredentialsError) as exc:
+        console.print(f"[red]falhou[/] — {_describe_failure(exc)}")
+        # The trap of this step: Titan Embeddings is enabled separately from the
+        # chat model, so the account can pass `emporio check`'s first half and
+        # still be refused here.
+        console.print(
+            "[dim]o modelo de embeddings é liberado separadamente do modelo de "
+            "conversa, na mesma região.[/]"
+        )
+        raise typer.Exit(code=1) from exc
+    except PolicyError as exc:
+        console.print(f"[red]falhou[/] — {exc}")
+        raise typer.Exit(code=1) from exc
+
+    table = Table(show_header=False, box=None)
+    table.add_row("trechos", str(len(index.chunks)))
+    table.add_row("seções", ", ".join(chunk.section for chunk in index.chunks))
+    table.add_row("dimensão", str(index.dimension))
+    table.add_row("hash do PDF", index.pdf_digest)
+    table.add_row("arquivos", f"{index_dir / CHUNKS_FILE}, {index_dir / VECTORS_FILE}")
+    console.print(table)
+    console.print("\n[green]Índice de políticas construído.[/]")
+
+
+def _warn_about_index() -> None:
+    """Say so when the stored index cannot be trusted, and keep going.
+
+    A warning and not an error: the catalog and the order half of the agent work
+    without the index, and the operator is the one who can fix it. What must not
+    happen is the silent case -- an index built with another embedding model
+    still produces similarities, and they rank nonsense.
+    """
+    check = check_index()
+    if check.usable:
+        return
+    if check.missing:
+        console.print(
+            "[yellow]sem índice de políticas[/] — perguntas sobre regras da loja vão "
+            "falhar. Rode `emporio build-index`."
+        )
+        return
+    if check.model_changed:
+        console.print(
+            "[yellow]o índice de políticas foi construído com outro modelo de "
+            "embeddings[/] — as similaridades ficam sem sentido. Rode `emporio build-index`."
+        )
+    if check.pdf_changed:
+        console.print(
+            "[yellow]o manual de políticas mudou depois do índice[/] — rode `emporio build-index`."
+        )
 
 
 # --- chat ---------------------------------------------------------------------
@@ -262,6 +350,7 @@ def chat(
         else "anônima (só informação pública; pedidos ficam na área logada)",
     )
     console.print(header)
+    _warn_about_index()
     console.print("[dim]`/sair` para encerrar.[/]")
 
     lines = _transcript_header(session, settings.model_id, settings.region)

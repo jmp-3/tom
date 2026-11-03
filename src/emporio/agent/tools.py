@@ -1,8 +1,8 @@
-"""The query functions of `emporio.data`, wrapped as tools.
+"""The query functions of `emporio.data`, and the policy retriever, as tools.
 
 Nothing here queries anything: every function below forwards to
-`emporio.data.queries` and returns what it gets. The wrapper exists for the
-three things the model should not see.
+`emporio.data.queries` -- or, for the policies, to `emporio.rag` -- and returns
+what it gets. The wrapper exists for the three things the model should not see.
 
 *   `dataset` and `today`, the keyword-only arguments the test suite injects,
     are not parameters here, so they never reach the schema.
@@ -39,6 +39,7 @@ from emporio.data.models import (
     DEFAULT_SIMILAR_LIMIT,
     MAX_SEARCH_LIMIT,
 )
+from emporio.rag import policy_retriever
 
 # Returned when the model asks for a product that does not exist, or asks
 # without saying which one. Same shape as `queries.ORDER_NOT_FOUND`, so "not
@@ -182,13 +183,53 @@ def get_order(order_id: int, runtime: ToolRuntime[SessionContext]) -> dict[str, 
     return queries.get_order(order_id, _session_customer_id(runtime))
 
 
-# Public information: offered in every session.
+@tool(parse_docstring=True)
+def search_policies(question: str) -> dict[str, Any]:
+    """The store's policy manual: returns, exchanges, warranty, shipping, payment, hours.
+
+    Use it for any question about a store rule instead of about a product or an
+    order: how many days there are to return or exchange something, what the
+    warranty covers, what shipping costs and how long it takes, which payment
+    methods and installments exist, opening hours, how promotions combine, what
+    happens to personal data.
+
+    Returns the closest excerpts of the manual, each with the `section` that has
+    to be cited in the answer. An excerpt that does not answer the question is
+    not an answer: say what is missing instead of filling the gap.
+
+    Args:
+        question: The customer's question, in their own words.
+    """
+    # Nothing is caught here. A missing index or a refused embedding call is an
+    # exception, which `middleware.tool_error_to_message` turns into a message
+    # the model can read -- the same path every other tool takes, and the reason
+    # the operator gets the warning at startup instead.
+    found = policy_retriever().invoke(question)
+    excerpts = [
+        {
+            "section": document.metadata["section"],
+            "title": document.metadata["title"],
+            "text": document.page_content,
+        }
+        for document in found
+    ]
+    return {"excerpts": excerpts, "shown": len(excerpts)}
+
+
+# The catalog: public information, offered in every session.
 CATALOG_TOOLS: Final[list[BaseTool]] = [
     search_products,
     get_product,
     list_categories,
     similar_products,
 ]
+
+# The policy manual: also public, and also offered in every session -- an
+# anonymous visitor asking about the return window is asking about a published
+# store rule, not about anyone's data.
+POLICY_TOOLS: Final[list[BaseTool]] = [search_policies]
+
+PUBLIC_TOOLS: Final[list[BaseTool]] = [*CATALOG_TOOLS, *POLICY_TOOLS]
 
 # Personal data of one customer: offered only when the session is identified.
 ORDER_TOOLS: Final[list[BaseTool]] = [list_orders, get_order]
@@ -197,4 +238,4 @@ ORDER_TOOL_NAMES: Final = frozenset(instrument.name for instrument in ORDER_TOOL
 
 # Everything is registered on the agent; the middleware decides, per model call,
 # which of them that call is allowed to see.
-STORE_TOOLS: Final[list[BaseTool]] = [*CATALOG_TOOLS, *ORDER_TOOLS]
+STORE_TOOLS: Final[list[BaseTool]] = [*PUBLIC_TOOLS, *ORDER_TOOLS]

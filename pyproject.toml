@@ -16,6 +16,8 @@ dependencies = [
     "langgraph>=1.2.19",
     "langchain-aws>=1.9.1",
     "pyyaml>=6.0.3",
+    "pdfplumber>=0.11.10",
+    "numpy>=2.4.6",
 ]
 
 [project.scripts]

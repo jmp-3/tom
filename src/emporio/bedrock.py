@@ -5,7 +5,8 @@ A single entry point to the models. Conversation goes through the Converse API
 embeddings are not served by the Converse API, so they use `invoke_model`.
 
 `chat_model` is the same Converse API seen through LangChain, which is what the
-agent loop consumes. `converse` stays as the raw path: no framework in the way,
+agent loop consumes, and `embedding_model` is its counterpart for the policy
+index. `converse` and `embed` stay as the raw path: no framework in the way,
 already proven against this account, and therefore the control to fall back on
 when a LangChain error is ambiguous about where it came from.
 """
@@ -17,7 +18,7 @@ from functools import lru_cache
 from typing import Any
 
 import boto3
-from langchain_aws import ChatBedrockConverse
+from langchain_aws import BedrockEmbeddings, ChatBedrockConverse
 
 from emporio.config import get_settings
 
@@ -69,6 +70,25 @@ def chat_model(
         temperature=temperature,
         max_retries=max_retries,
         disable_streaming=not streaming,
+    )
+
+
+def embedding_model(*, model_id: str | None = None) -> BedrockEmbeddings:
+    """Return the embedding model the policy index is built and queried with.
+
+    Here next to `chat_model` for the same reason: one place where a model id
+    from the environment becomes a model object. The framework class rather than
+    the `embed` below because it batches a whole document into one call, and
+    because `Embeddings` is the interface the retriever expects.
+
+    `get_settings()` runs first for the same reason as in `chat_model`: it loads
+    the `.env`, and the constructor reads `AWS_BEARER_TOKEN_BEDROCK` from the
+    environment while it is being built.
+    """
+    settings = get_settings()
+    return BedrockEmbeddings(
+        model_id=model_id or settings.embed_model_id,
+        region_name=settings.region,
     )
 
 
