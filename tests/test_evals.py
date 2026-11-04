@@ -2,7 +2,7 @@
 
 A gate that scores wrongly is worse than no gate, and none of this needs a
 model: `CaseResult` is built by hand here and the judgement is asserted on it.
-The model's part is `emporio eval`, which bills real calls.
+The model's part is `tom eval`, which bills real calls.
 """
 
 from __future__ import annotations

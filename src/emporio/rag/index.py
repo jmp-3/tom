@@ -166,7 +166,7 @@ def load_index(index_dir: Path | None = None) -> PolicyIndex:
     chunks_path = directory / CHUNKS_FILE
     vectors_path = directory / VECTORS_FILE
     if not chunks_path.is_file() or not vectors_path.is_file():
-        raise PolicyError(f"no policy index in {directory}. Build it with `emporio build-index`.")
+        raise PolicyError(f"no policy index in {directory}. Build it with `tom build-index`.")
 
     try:
         payload = json.loads(chunks_path.read_text(encoding="utf-8"))
@@ -180,7 +180,7 @@ def load_index(index_dir: Path | None = None) -> PolicyIndex:
     if vectors.ndim != 2 or vectors.shape[0] != len(chunks):
         raise PolicyError(
             f"the policy index in {directory} is inconsistent: {len(chunks)} chunks against "
-            f"a {vectors.shape} matrix. Rebuild it with `emporio build-index`."
+            f"a {vectors.shape} matrix. Rebuild it with `tom build-index`."
         )
     if int(payload.get("dimension", vectors.shape[1])) != vectors.shape[1]:
         raise PolicyError(

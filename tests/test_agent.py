@@ -6,7 +6,7 @@ what they should and nothing more, that an anonymous session is never even
 offered the order tools, that `customer_id` reaches a tool from the session and
 not from the model, that a tool raising an exception turns into a message
 instead of an exception, and that the stop reasons are recorded and classified.
-The model's *judgement* is not testable offline -- that is what `emporio eval`
+The model's *judgement* is not testable offline -- that is what `tom eval`
 is for.
 """
 

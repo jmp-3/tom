@@ -139,7 +139,7 @@ def as_user_prefix(question: str, context: SessionContext | None = None) -> str:
     """The persona prefixed to a user turn, for a model with no system block.
 
     Not the path in use: the configured model honors the system block, which is
-    what `emporio check` exercises on every run -- it sends a `system` block and
+    what `tom check` exercises on every run -- it sends a `system` block and
     the answer obeys it. This exists so that switching to a model that ignores
     the block is one call site, not a second copy of the persona.
     """

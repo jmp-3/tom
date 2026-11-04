@@ -1,5 +1,5 @@
 [project]
-name = "em-agent"
+name = "tom"
 version = "0.1.0"
 description = "Customer service agent (CLI) for Empório da Música, prototype"
 readme = "README.md"
@@ -21,9 +21,10 @@ dependencies = [
 ]
 
 [project.scripts]
-# The command the reviewer types. The import package is `emporio` too;
-# the repo/directory is `em-agent`.
-emporio = "emporio.cli:app"
+# The command the reviewer types, and the name of the assistant in the persona.
+# The import package stays `emporio`: it is the store whose catalog and policies
+# the code models, and Tom is who consults them.
+tom = "emporio.cli:app"
 
 [build-system]
 requires = ["hatchling"]

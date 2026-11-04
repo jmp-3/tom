@@ -52,10 +52,10 @@ _HINTS = {
         "Gere outra em Bedrock > API keys e atualize o .env."
     ),
     "ValidationException": (
-        "o modelId não é aceito nesta região. Confira a lista com `emporio models`."
+        "o modelId não é aceito nesta região. Confira a lista com `tom models`."
     ),
     "ResourceNotFoundException": (
-        "modelo inexistente nesta região. Confira a lista com `emporio models`."
+        "modelo inexistente nesta região. Confira a lista com `tom models`."
     ),
     "ThrottlingException": "limite de requisições atingido; tente de novo em alguns segundos.",
     "UnrecognizedClientException": "credencial inválida ou expirada (confira o .env).",
@@ -189,7 +189,7 @@ def build_index_command(
     except (ClientError, BotoCoreError, NoCredentialsError) as exc:
         console.print(f"[red]falhou[/] — {_describe_failure(exc)}")
         # The trap of this step: Titan Embeddings is enabled separately from the
-        # chat model, so the account can pass `emporio check`'s first half and
+        # chat model, so the account can pass `tom check`'s first half and
         # still be refused here.
         console.print(
             "[dim]o modelo de embeddings é liberado separadamente do modelo de "
@@ -224,17 +224,17 @@ def _warn_about_index() -> None:
     if check.missing:
         console.print(
             "[yellow]sem índice de políticas[/] — perguntas sobre regras da loja vão "
-            "falhar. Rode `emporio build-index`."
+            "falhar. Rode `tom build-index`."
         )
         return
     if check.model_changed:
         console.print(
             "[yellow]o índice de políticas foi construído com outro modelo de "
-            "embeddings[/] — as similaridades ficam sem sentido. Rode `emporio build-index`."
+            "embeddings[/] — as similaridades ficam sem sentido. Rode `tom build-index`."
         )
     if check.pdf_changed:
         console.print(
-            "[yellow]o manual de políticas mudou depois do índice[/] — rode `emporio build-index`."
+            "[yellow]o manual de políticas mudou depois do índice[/] — rode `tom build-index`."
         )
 
 
@@ -305,7 +305,7 @@ def _transcript_header(session: SessionContext, model_id: str, region: str) -> l
         else "anônima (sem `--cliente-id`)"
     )
     return [
-        "# Transcript — `emporio chat`",
+        "# Transcript — `tom chat`",
         "",
         f"- modelo: `{model_id}` em {region}",
         f"- sessão: {mode}",
@@ -529,5 +529,5 @@ def main(
     version: bool = typer.Option(False, "--version", help="Show the version and exit."),
 ) -> None:
     if version:
-        console.print(f"emporio {__version__}")
+        console.print(f"tom {__version__}")
         raise typer.Exit()

@@ -1,9 +1,15 @@
-# Empório da Música: customer service agent
+# Tom: customer service agent
 
-Prototype of a customer service agent for the fictional store **Empório da Música**, which sells musical
-instruments in Campo Grande/MS. Command-line interface, in Python, with the models running on Amazon Bedrock.
+**Tom** is the virtual attendant of the fictional **Empório da Música**, a store that sells musical
+instruments in Campo Grande/MS. Tom answers about the catalog, about the orders of the customer the
+session belongs to, and about the store's policies -- and nothing from memory: every price, stock count,
+deadline and rule stated comes from a typed tool over the store's data, or from a retrieved excerpt of
+the policy manual. Command-line interface, in Python, with the models running on Amazon Bedrock.
 
-Price and stock counts are deterministic, auditable, tested code. The agent's job is to read what the code returns.
+```bash
+uv run tom chat                    # anonymous: catalog and policies
+uv run tom chat --cliente-id 3     # identified: that customer's orders as well
+```
 
 **Language convention.** Identifiers, comments, docstrings and this README are in English, tool docstrings
 included -- they are code, and the model reads them as well in either language. Everything the *customer*
@@ -22,7 +28,7 @@ translated.
 ```bash
 uv sync                      # creates the .venv and installs from the lockfile
 cp .env.example .env         # then fill in the variables (see below)
-uv run emporio build-index   # builds the policy index from the PDF (see below)
+uv run tom build-index   # builds the policy index from the PDF (see below)
 ```
 
 ## Configuration
@@ -42,17 +48,17 @@ All variables live in the `.env` at the project root (not version controlled).
 ## Usage
 
 ```bash
-uv run emporio check          # validates credentials and model access
-uv run emporio models -s nova # lists the region's text models
-uv run emporio build-index    # (re)builds the policy index into index/
+uv run tom check          # validates credentials and model access
+uv run tom models -s nova # lists the region's text models
+uv run tom build-index    # (re)builds the policy index into index/
 
-uv run emporio chat                      # anonymous session: public information only
-uv run emporio chat --cliente-id 3       # identified session, as if logged in
-uv run emporio chat --cliente-id 3 --debug --transcript conversa.md
+uv run tom chat                      # anonymous session: public information only
+uv run tom chat --cliente-id 3       # identified session, as if logged in
+uv run tom chat --cliente-id 3 --debug --transcript conversa.md
 
-uv run emporio eval           # the model gate: 6 cases, 1 billed call each
-uv run emporio eval -n 2      # the gate twice, which is the criterion
-uv run emporio eval -m us.amazon.nova-lite-v1:0   # try a candidate model, .env untouched
+uv run tom eval           # the model gate: 6 cases, 1 billed call each
+uv run tom eval -n 2      # the gate twice, which is the criterion
+uv run tom eval -m us.amazon.nova-lite-v1:0   # try a candidate model, .env untouched
 
 uv run pytest                 # data layer, agent mechanics and the gate's scoring
 uv run mypy                   # type check
@@ -60,26 +66,26 @@ uv run ruff check             # lint
 uv run ruff format            # format in place; add --diff to preview first
 ```
 
-`emporio chat` keeps the conversation in memory (`InMemorySaver`), prints with `rich`, and ends on
+`tom chat` keeps the conversation in memory (`InMemorySaver`), prints with `rich`, and ends on
 `/sair`. `--debug` prints, per model call, the tools the request carried and their arguments *as the model
 sees them*, then every call and tool result and the `stopReason`. `--transcript` writes the conversation to
 markdown after every turn, which is where the example conversations come from.
 
 `scripts/smoke_tool_use.py` is the gate test (one toy tool) and is kept runnable for the record;
-`emporio eval` is the real one.
+`tom eval` is the real one.
 
 `mypy` and `ruff` are both configured in `pyproject.toml`.
 
-`emporio check` makes exactly two billed calls, one for conversation and one for
+`tom check` makes exactly two billed calls, one for conversation and one for
 embeddings, and exits with code 1 if either fails, explaining the error (model
 access not enabled, modelId invalid in the region, expired credential). The two
 halves fail independently: the embeddings model is enabled separately from the
 conversation model in Bedrock > Model access, so an account can pass the first
 half and be refused by `build-index`.
 
-`emporio build-index` is a setup step, not a command anyone runs twice: it reads
+`tom build-index` is a setup step, not a command anyone runs twice: it reads
 `data/políticas_da_loja.pdf` and writes `index/`, which is not committed. It
-makes one billed embeddings call. `emporio chat` says so on startup when the
+makes one billed embeddings call. `tom chat` says so on startup when the
 index is missing or no longer matches.
 
 ## Structure
@@ -105,7 +111,7 @@ src/emporio/
     ├── chunker.py    # the policy PDF cut into one chunk per numbered section
     ├── index.py      # embeddings, the two index files, and the staleness check
     └── retriever.py  # BaseRetriever over cosine similarity in numpy
-index/                # generated by `emporio build-index`, not committed
+index/                # generated by `tom build-index`, not committed
 evals/
 └── casos.yaml        # the gate's cases: question, mode, expected decision
 scripts/
@@ -172,7 +178,7 @@ Two framework features carry this, and neither is a prompt:
 
 ### The model gate and the fallback ladder
 
-`emporio eval` runs the seven cases in `evals/casos.yaml`, one per kind of decision the agent has to make:
+`tom eval` runs the seven cases in `evals/casos.yaml`, one per kind of decision the agent has to make:
 price-range search, product detail, one order by number, "what are my orders?" with no number, an *indirect*
 question about orders ("am I owing anything?"), a question that needs no tool, and a request for an
 accessory the store does not sell. Each case declares the mode it runs in. It scores the choice of tool, the
