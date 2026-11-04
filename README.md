@@ -1,7 +1,7 @@
 # Tom: customer service agent
 
 **Tom** is the virtual attendant of the fictional **Empório da Música**, a store that sells musical
-instruments in Campo Grande/MS. Tom answers about the catalog, about the orders of the customer the
+instruments. Tom answers about the catalog, about the orders of the customer the
 session belongs to, and about the store's policies -- and nothing from memory: every price, stock count,
 deadline and rule stated comes from a typed tool over the store's data, or from a retrieved excerpt of
 the policy manual. Command-line interface, in Python, with the models running on Amazon Bedrock.
@@ -218,6 +218,49 @@ projected; and there is no `search_customers` or `list_customers` to call.
 The store's rules live in `data/políticas_da_loja.pdf`: eight pages of prose, ten numbered sections, four
 tables. `emporio.rag` is what makes them answerable, and `search_policies` is the tool that reaches them.
 
+## Design decisions
+
+The agent runs on LangChain 1.0 and LangGraph instead of on a loop written by hand. `create_agent` owns the
+model-tool-model cycle and exposes it through middleware, and middleware is where the three behaviours
+specific to this project live: which tools a session may use, the session half of the system prompt, and the
+conversion of a tool exception into a message. `emporio.bedrock` keeps a raw `converse()` path as well. That
+path is what made the choice of model trustworthy, because a model that never called a tool could be
+retested with no framework in between.
+
+`ChatBedrockConverse` puts the Bedrock Converse API underneath, so the model is a configuration variable.
+The project started on a 4B model and ended on `claude-haiku-4-5`, and the two runs differ by one line of
+`.env`. `tom eval` scores a candidate on seven cases, so a change of model follows a measurement.
+
+Questions about the catalog and the orders go to typed tools, and questions about the policies go to semantic
+retrieval. The catalog and the orders are structured, 65 products and 20 orders over a dozen columns, which a
+deterministic filter covers completely while every number it returns stays auditable; no model call happens
+inside `emporio.data`. The policies are prose, and "me arrependi da compra, posso devolver?" has no column to
+filter on. Each mechanism is wrong for the other kind of data: a price ranked by cosine similarity cannot be
+audited, and a policy flattened into a table loses the conditions it depends on.
+
+Retrieval uses numpy and no vector database. The manual is 25 chunks, so a search is one dot product against
+a 25 by 1024 matrix. FAISS or Chroma would add a dependency, a storage format, and a second place for the
+index to go stale, in exchange for a search that is already instantaneous. `rag/retriever.py` subclasses
+`BaseRetriever`, which keeps the decision reversible: if the manual grows to a thousand pages, that one class
+changes and `search_policies` does not.
+
+The index is a build step and not a committed file. `tom build-index` derives `index/` from the PDF in about a
+second, and the two files record the embedding model, the dimension, and a digest of the PDF, which `tom chat`
+compares against the environment on startup. Vectors produced by one embedding model and ranked against a
+query embedded by another still give a valid cosine and a meaningless order, so without that check the agent
+keeps answering fluently and cites the wrong section.
+
+The framework enforces the two session modes, and the prompt does not. The chat is simulated inside the
+logged-in area of the site, so the customer's identity arrives with the session: `customers.csv` holds no
+credential, and asking for a phone number would identify a customer without proving anything. `customer_id`
+reaches the tools through `ToolRuntime` and appears in no schema the model receives, and in an anonymous
+session the order tools are absent from the request rather than refused when called. A prompt can be argued
+out of a rule, and a tool that was never offered cannot be called.
+
+The persona states prohibitions and says nothing about how to call a tool. The model never computes a price,
+counts stock, or estimates a deadline, because each of those comes from a tool. The call format belongs to
+`create_agent` and the Converse API, and text that competes with that mechanism produces malformed calls.
+
 ## Assumptions
 
 - **Authenticated channel.** The chat is simulated as if it lived inside the logged-in area of the
@@ -246,3 +289,9 @@ tables. `emporio.rag` is what makes them answerable, and `search_policies` is th
   to 2000" is a statement about the bill, not about the list price.
 - **At most one active promotion per product.** True of the data, not enforced by the file, so the largest
   discount wins, a rule that does not depend on row order.
+
+## AI usage
+
+Claude was used throughout this project: discussing the design and planning the stages, writing the code,
+this README and the docstrings, generating the test suite and the eval cases, and reviewing the diffs. The
+decisions above are mine, and everything committed was read, run and tested before it was kept.
