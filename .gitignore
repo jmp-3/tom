@@ -2,9 +2,8 @@
 # unanchored `data/` also matches src/emporio/data/, which would silently keep
 # the whole data package out of every commit.
 /data/
-/example-chats/
 
-# Generated policy index: derived cache, rebuilt in a second by `emporio
+# Generated policy index: derived cache, rebuilt in a second by `tom
 # build-index`, and derived from `data/`, which is not committed either -- a
 # committed index would outlive its source. A float matrix has no useful diff.
 /index/
